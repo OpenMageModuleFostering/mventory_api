@@ -1,0 +1,148 @@
+/**
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Creative Commons License BY-NC-ND.
+ * NonCommercial — You may not use the material for commercial purposes.
+ * NoDerivatives — If you remix, transform, or build upon the material,
+ * you may not distribute the modified material.
+ * See the full license at http://creativecommons.org/licenses/by-nc-nd/4.0/
+ *
+ * See http://mventory.com/legal/licensing/ for other licensing options.
+ *
+ * @package MVentory/API
+ * @copyright Copyright (c) 2014 mVentory Ltd. (http://mventory.com)
+ * @license http://creativecommons.org/licenses/by-nc-nd/4.0/
+ * @author Anatoly A. Kazantsev <anatoly@mventory.com>
+ */
+
+#mventory-rules {
+  margin-bottom: 20px;
+}
+
+.mventory-rule-template {
+  display: none;
+}
+
+.mventory-rule {
+  position: relative;
+}
+
+.mventory-rule-placeholder {
+  border-style: dashed;
+  opacity: 0.5;
+}
+
+.mventory-rule .mventory-rule-remove {
+  color: #EA7601;
+  cursor: pointer;
+  font-size: 12px;
+  left: 2px;
+  line-height: 12px;
+  position: absolute;
+  top: 1px;
+}
+
+.mventory-rule-attrs {
+  float: left;
+  width: 70%;
+}
+
+.mventory-rule-attrs .mventory-inner {
+  border-right: 2px solid #D6D6D6;
+}
+
+.mventory-rule-categories {
+  float: left;
+  width: 30%;
+}
+
+.mventory-rule-categories .mventory-inner {
+  margin: 2px 15px;
+}
+
+.mventory-rule-attr,
+.mventory-rule-category {
+  border-top: 1px dashed #D6D6D6;
+  margin-right: 15px;
+  padding: 2px 0px;
+}
+
+.mventory-rule-attr:first-child,
+.mventory-rule-category:first-child,
+#mventory-rule-new > .mventory-inner > *:first-child {
+  border: none;
+}
+
+.mventory-rule-attr > * {
+  width: 50%;
+  float: left;
+}
+
+#mventory-rule-new {
+  margin-bottom: 10px;
+}
+
+#mventory-rule-new > .mventory-inner > * {
+  float: left;
+  border-left: 1px dashed #D6D6D6;
+  margin-right: 15px;
+  padding-left: 15px;
+}
+
+#mventory-rule-new > .mventory-inner > *:first-child {
+  padding-left: 0px;
+}
+
+.mventory-rule-new-arrow {
+  text-align: center;
+}
+
+.mventory-rule-new-attr-name,
+.mventory-rule-new-attr-value {
+  width: 100%;
+}
+
+.mventory-rule-new-attr-value {
+  min-height: 200px;
+}
+
+.mventory-rule-new-attr-name > .mventory-state-used-attr {
+  color: blue;
+}
+
+.mventory-rule-new-attr-name > option[value="-1"] {
+  display: none;
+}
+
+.mventory-rule-new-attr-value > .mventory-state-used-value {
+  color: lightgray;
+}
+
+#mventory-rule-new-buttons {
+  clear: both;
+  border-top: 2px solid #D6D6D6;
+  padding-top: 10px;
+}
+
+.mventory-rule-new-attr-buttons a {
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.mventory-state-not-completed .mventory-rule-new-attr-buttons a {
+  color: gray;
+  cursor: default;
+}
+
+.mventory-rule-category {
+  margin: 0;
+}
+
+.mventory-state-no-category {
+  color: lightgray;
+}
+
+#mventory-categories-wrapper {
+  display: none;
+  position: absolute;
+}

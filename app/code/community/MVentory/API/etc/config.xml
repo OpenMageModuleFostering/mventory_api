@@ -1,0 +1,476 @@
+<?xml version="1.0"?>
+
+<!--
+/**
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Creative Commons License BY-NC-ND.
+ * NonCommercial — You may not use the material for commercial purposes.
+ * NoDerivatives — If you remix, transform, or build upon the material,
+ * you may not distribute the modified material.
+ * See the full license at http://creativecommons.org/licenses/by-nc-nd/4.0/
+ *
+ * See http://mventory.com/legal/licensing/ for other licensing options.
+ *
+ * @package MVentory/API
+ * @copyright Copyright (c) 2014 mVentory Ltd. (http://mventory.com)
+ * @license http://creativecommons.org/licenses/by-nc-nd/4.0/
+ */
+-->
+
+<config>
+  <modules>
+    <MVentory_API>
+      <version>25</version>
+    </MVentory_API>
+  </modules>
+
+  <global>
+    <blocks>
+      <mventory>
+        <class>MVentory_API_Block</class>
+      </mventory>
+
+      <catalog>
+        <rewrite>
+          <layer_view>MVentory_API_Block_Layer_View</layer_view>
+          <product_view_attributes>MVentory_API_Block_Product_View_Attributes</product_view_attributes>
+          <product_view_tabs>MVentory_API_Block_Product_View_Tabs</product_view_tabs>
+        </rewrite>
+      </catalog>
+
+      <adminhtml>
+        <rewrite>
+          <dashboard_grids>MVentory_API_Block_Adminhtml_Dashboard_Grids</dashboard_grids>
+        </rewrite>
+      </adminhtml>
+
+      <page>
+        <rewrite>
+          <html_footer>MVentory_API_Block_Html_Footer</html_footer>
+        </rewrite>
+      </page>
+    </blocks>
+
+    <models>
+      <mventory>
+        <class>MVentory_API_Model</class>
+        <resourceModel>mventory_resources</resourceModel>
+      </mventory>
+
+      <mventory_resources>
+        <class>MVentory_API_Model_Resource</class>
+
+        <entities>
+          <order_transaction>
+            <table>mventory_order_transaction</table>
+          </order_transaction>
+          <cart_item>
+            <table>mventory_cart_item</table>
+          </cart_item>
+
+          <carrier_volumerate>
+            <table>mventory_carrier_volumerate</table>
+          </carrier_volumerate>
+
+          <matching_rules>
+            <table>mventory_matching_rules</table>
+          </matching_rules>
+
+          <additional_skus>
+            <table>mventory_additional_skus</table>
+          </additional_skus>
+        </entities>
+      </mventory_resources>
+
+      <catalog>
+        <rewrite>
+          <layer>MVentory_API_Model_Layer</layer>
+          <layer_filter_attribute>MVentory_API_Model_Layer_Filter_Attribute</layer_filter_attribute>
+          <product_url>MVentory_API_Model_Product_Url</product_url>
+        </rewrite>
+      </catalog>
+
+      <core>
+        <rewrite>
+          <convert>MVentory_API_Model_Core_Convert</convert>
+        </rewrite>
+      </core>
+    </models>
+
+    <helpers>
+      <mventory>
+        <class>MVentory_API_Helper</class>
+      </mventory>
+
+      <sales>
+        <rewrite>
+          <data>MVentory_API_Helper_Mage_Sales_Data</data>
+        </rewrite>
+      </sales>
+    </helpers>
+
+    <resources>
+      <mventory_setup>
+        <setup>
+          <module>MVentory_API</module>
+          <class>MVentory_API_Model_Resource_Setup</class>
+        </setup>
+      </mventory_setup>
+    </resources>
+
+    <events>
+      <catalog_product_save_before>
+        <observers>
+          <mventory_populate_attributes>
+            <type>singleton</type>
+            <class>mventory/observer</class>
+            <method>populateAttributes</method>
+          </mventory_populate_attributes>
+
+          <mventory_save_product_create_date>
+            <type>singleton</type>
+            <class>mventory/observer</class>
+            <method>saveProductCreateDate</method>
+          </mventory_save_product_create_date>
+
+          <mventory_match_category>
+            <type>singleton</type>
+            <class>mventory/observer</class>
+            <method>matchCategory</method>
+          </mventory_match_category>
+
+          <mventory_save_attributes_hash>
+            <type>singleton</type>
+            <class>mventory/observer</class>
+            <method>saveAttributesHash</method>
+          </mventory_save_attributes_hash>
+
+          <mventory_remove_similar>
+            <type>singleton</type>
+            <class>mventory/observer</class>
+            <method>removeSimilar</method>
+          </mventory_remove_similar>
+
+          <mventory_unassign_from_configurable>
+            <type>singleton</type>
+            <class>mventory/observer</class>
+            <method>unassignFromConfigurable</method>
+          </mventory_unassign_from_configurable>
+
+          <mventory_assign_to_configurable_before>
+            <type>singleton</type>
+            <class>mventory/observer</class>
+            <method>assignToConfigurableBefore</method>
+          </mventory_assign_to_configurable_before>
+        </observers>
+      </catalog_product_save_before>
+
+      <catalog_product_save_after>
+        <observers>
+           <mventory_save_images_after_merge>
+            <type>singleton</type>
+            <class>mventory/observer</class>
+            <method>saveImagesAfterMerge</method>
+          </mventory_save_images_after_merge>
+
+          <mventory_assign_to_configurable_after>
+            <type>singleton</type>
+            <class>mventory/observer</class>
+            <method>assignToConfigurableAfter</method>
+          </mventory_assign_to_configurable_after>
+
+          <mventory_update_prices_in_configurable>
+            <type>singleton</type>
+            <class>mventory/observer</class>
+            <method>updatePricesInConfigurable</method>
+          </mventory_update_prices_in_configurable>
+
+          <mventory_update_description_in_configurable>
+            <type>singleton</type>
+            <class>mventory/observer</class>
+            <method>updateDescriptionInConfigurable</method>
+          </mventory_update_description_in_configurable>
+
+          <mventory_save_additional_skus>
+            <type>singleton</type>
+            <class>mventory/observer</class>
+            <method>saveAdditionalSkus</method>
+          </mventory_save_additional_skus>
+        </observers>
+      </catalog_product_save_after>
+
+      <catalog_model_product_duplicate>
+        <observers>
+          <mventory_unset_duplicate_flag_in_product>
+            <type>singleton</type>
+            <class>mventory/observer</class>
+            <method>unsetDuplicateFlagInProduct</method>
+          </mventory_unset_duplicate_flag_in_product>
+
+          <mventory_update_duplicate>
+            <type>singleton</type>
+            <class>mventory/observer</class>
+            <method>updateDuplicate</method>
+          </mventory_update_duplicate>
+        </observers>
+      </catalog_model_product_duplicate>
+
+      <!-- Requires M. >= 1.7 -->
+      <catalog_product_media_save_before>
+        <observers>
+          <mventory_reset_exclude_flag>
+            <type>singleton</type>
+            <class>mventory/observer</class>
+            <method>resetExcludeFlag</method>
+          </mventory_reset_exclude_flag>
+
+          <mventory_restore_duplicate_flag_in_product>
+            <type>singleton</type>
+            <class>mventory/observer</class>
+            <method>restoreDuplicateFlagInProduct</method>
+          </mventory_restore_duplicate_flag_in_product>
+
+          <mventory_sync_images>
+            <type>singleton</type>
+            <class>mventory/observer</class>
+            <method>syncImages</method>
+          </mventory_sync_images>
+        </observers>
+      </catalog_product_media_save_before>
+
+      <catalog_controller_product_init>
+        <observers>
+          <mventory_product_init>
+            <type>singleton</type>
+            <class>mventory/observer</class>
+            <method>productInit</method>
+          </mventory_product_init>
+        </observers>
+      </catalog_controller_product_init>
+
+      <cataloginventory_stock_item_save_after>
+        <observers>
+          <mventory_update_prices_in_configurable_on_stock_change>
+            <type>singleton</type>
+            <class>mventory/observer</class>
+            <method>updatePricesInConfigurableOnStockChange</method>
+          </mventory_update_prices_in_configurable_on_stock_change>
+        </observers>
+      </cataloginventory_stock_item_save_after>
+
+      <adminhtml_catalog_product_grid_prepare_massaction>
+        <observers>
+          <mventory_add_product_name_rebuild_massaction>
+            <type>singleton</type>
+            <class>mventory/observer</class>
+            <method>addProductNameRebuildMassaction</method>
+          </mventory_add_product_name_rebuild_massaction>
+
+          <mventory_add_product_attributes_populate_massaction>
+            <type>singleton</type>
+            <class>mventory/observer</class>
+            <method>addProductAttributesPopulateMassaction</method>
+          </mventory_add_product_attributes_populate_massaction>
+
+          <mventory_add_product_category_match_massaction>
+            <type>singleton</type>
+            <class>mventory/observer</class>
+            <method>addProductCategoryMatchMassaction</method>
+          </mventory_add_product_category_match_massaction>
+        </observers>
+      </adminhtml_catalog_product_grid_prepare_massaction>
+    </events>
+
+    <rewrite>
+      <mventory_qr_scan>
+        <from><![CDATA[#^/sku/#]]></from>
+        <to><![CDATA[/mventory/qr/scan/sku/]]></to>
+      </mventory_qr_scan>
+      <mventory_app_config>
+        <from><![CDATA[#^/mventory-key/(.*)\.txt$#]]></from>
+        <to><![CDATA[/mventory/app/profile/key/$1/]]></to>
+      </mventory_app_config>
+      <mventory_app_config_redirect>
+        <from><![CDATA[#^/mventory-key/(.*)$#]]></from>
+        <to><![CDATA[/mventory/app/redirect/key/$1/]]></to>
+      </mventory_app_config_redirect>
+
+      <!-- Support for old app -->
+      <!-- !!!TODO: remove it after all apps will be upgraded -->
+      <mventory_image_redirect>
+        <from><![CDATA[#^/mventory_tm/image/get/file/(.*)$#]]></from>
+        <to><![CDATA[/mventory/image/get/file/$1]]></to>
+      </mventory_image_redirect>
+    </rewrite>
+
+    <cache>
+      <types>
+        <mventory module="mventory" translate="label,description">
+          <label>mVentory Cache</label>
+          <description>Cache for various mVentory parts</description>
+          <tags>MVENTORY</tags>
+        </mventory>
+      </types>
+    </cache>
+  </global>
+
+  <admin>
+    <routers>
+      <mventory_adminhtml>
+        <use>admin</use>
+        <args>
+          <module>MVentory_API</module>
+          <frontName>mventory</frontName>
+        </args>
+      </mventory_adminhtml>
+    </routers>
+  </admin>
+
+  <frontend>
+    <routers>
+      <mventory>
+        <use>standard</use>
+        <args>
+          <module>MVentory_API</module>
+          <frontName>mventory</frontName>
+        </args>
+      </mventory>
+    </routers>
+
+    <layout>
+      <updates>
+        <mventory>
+          <file>mventory.xml</file>
+        </mventory>
+      </updates>
+    </layout>
+  </frontend>
+
+  <adminhtml>
+    <acl>
+      <resources>
+        <admin>
+          <children>
+            <system>
+              <children>
+                <config>
+                  <children>
+                    <mventory>
+                      <title>mVentory API</title>
+                    </mventory>
+                  </children>
+                </config>
+              </children>
+            </system>
+          </children>
+        </admin>
+      </resources>
+    </acl>
+
+    <events>
+      <core_block_abstract_prepare_layout_before>
+        <observers>
+          <mventory_add_create_api_user_button>
+            <type>singleton</type>
+            <class>mventory/observer</class>
+            <method>addCreateApiUserButton</method>
+          </mventory_add_create_api_user_button>
+        </observers>
+      </core_block_abstract_prepare_layout_before>
+
+      <core_block_abstract_prepare_layout_before>
+        <observers>
+          <mventory_add_attribute_convert_button>
+            <type>singleton</type>
+            <class>mventory/observer</class>
+            <method>addAttributeConvertButton</method>
+          </mventory_add_attribute_convert_button>
+        </observers>
+      </core_block_abstract_prepare_layout_before>
+
+      <controller_action_layout_render_before_adminhtml_catalog_product_set_edit>
+        <observers>
+          <mventory_add_mathing_rules_block>
+            <type>singleton</type>
+            <class>mventory/observer</class>
+            <method>addMatchingRulesBlock</method>
+          </mventory_add_mathing_rules_block>
+        </observers>
+      </controller_action_layout_render_before_adminhtml_catalog_product_set_edit>
+
+      <api_user_save_after>
+        <observers>
+          <mventory_generate_link_for_profile>
+            <type>singleton</type>
+            <class>mventory/observer</class>
+            <method>generateLinkForProfile</method>
+          </mventory_generate_link_for_profile>
+        </observers>
+      </api_user_save_after>
+    </events>
+
+    <layout>
+      <updates>
+        <mventory>
+          <file>mventory.xml</file>
+        </mventory>
+      </updates>
+    </layout>
+  </adminhtml>
+
+  <default>
+    <mventory>
+      <qr>
+        <rows>10</rows>
+        <columns>15</columns>
+        <size>180</size>
+        <pages>3</pages>
+        <copies>1</copies>
+      </qr>
+
+      <api>
+        <products-number-to-fetch>50</products-number-to-fetch>
+        <add_to_websites>1</add_to_websites>
+        <tax_class>0</tax_class>
+        <cart-item-lifetime>1440</cart-item-lifetime>
+        <app_profile_link_lifetime>1440</app_profile_link_lifetime>
+        <default_role>mVentory</default_role>
+        <apply_rules>0</apply_rules>
+        <product_visiblity>1</product_visiblity>
+      </api>
+    </mventory>
+
+    <carriers>
+      <dummyshipping>
+        <active>1</active>
+        <sallowspecific>0</sallowspecific>
+        <cutoff_cost>0</cutoff_cost>
+        <model>mventory/carrier_dummyshipping</model>
+        <name>Dummy</name>
+        <title>Dummy Shipping</title>
+        <specificerrmsg>This shipping method is currently unavailable. If you would like to ship using this shipping method, please contact us.</specificerrmsg>
+      </dummyshipping>
+
+      <volumerate>
+        <active>0</active>
+        <sallowspecific>0</sallowspecific>
+        <model>mventory/carrier_volumerate</model>
+        <name>Shipping Rate</name>
+        <title>Volume/Weight Based Rate</title>
+        <specificerrmsg>This shipping method is currently unavailable. If you would like to ship using this shipping method, please contact us.</specificerrmsg>
+      </volumerate>
+    </carriers>
+
+    <payment>
+      <dummy>
+        <active>1</active>
+        <model>mventory/method_dummy</model>
+        <order_status>pending</order_status>
+        <title>App</title>
+        <allowspecific>0</allowspecific>
+        <group>offline</group>
+      </dummy>
+    </payment>
+  </default>
+</config>

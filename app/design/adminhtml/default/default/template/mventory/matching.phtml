@@ -1,0 +1,151 @@
+<?php
+
+/**
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Creative Commons License BY-NC-ND.
+ * NonCommercial — You may not use the material for commercial purposes.
+ * NoDerivatives — If you remix, transform, or build upon the material,
+ * you may not distribute the modified material.
+ * See the full license at http://creativecommons.org/licenses/by-nc-nd/4.0/
+ *
+ * See http://mventory.com/legal/licensing/ for other licensing options.
+ *
+ * @package MVentory/API
+ * @copyright Copyright (c) 2014 mVentory Ltd. (http://mventory.com)
+ * @license http://creativecommons.org/licenses/by-nc-nd/4.0/
+ * @author Anatoly A. Kazantsev <anatoly@mventory.com>
+ */
+
+$_rules = $this->_getRules();
+
+?>
+
+<div class="content-header">
+  <table cellspacing="0">
+    <tr>
+      <td style="width:100%;">
+        <h3 class="icon-head head-product-attribute-sets">
+          <?php echo $this->__('Categories Matching'); ?>
+        </h3>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<div id="mventory-rules">
+
+<?php foreach ($_rules as $id => $_rule): ?>
+  <?php $rule = $this->_prepareRule($_rule); ?>
+
+  <div id="<?php echo $id; ?>" class="mventory-rule box clear">
+
+    <div class="mventory-rule-remove">&#x274C;</div>
+
+    <div class="mventory-rule-attrs">
+      <div class="mventory-inner">
+
+      <?php if ($rule['default']): ?>
+        <div class="mventory-rule-attr clear"><?php echo $this->__('Default rule'); ?></div>
+      <?php else: ?>
+        <?php foreach ($rule['attrs'] as $label => $values): ?>
+          <div class="mventory-rule-attr clear">
+            <div class="mventory-rule-attr-name"><?php echo $label; ?></div>
+            <div class="mventory-rule-attr-value"><?php echo $values; ?></div>
+          </div>
+        <?php endforeach; ?>
+      <?php endif; ?>
+
+      </div>
+    </div>
+
+    <div class="mventory-rule-categories">
+      <div class="mventory-inner">
+        <div class="mventory-rule-category<?php if (!$rule['has_category']) echo ' mventory-state-no-category'; ?>"><?php echo $rule['category']; ?></div>
+      </div>
+    </div>
+
+  </div>
+
+<?php endforeach; ?>
+
+  <div class="mventory-rule box clear mventory-rule-template">
+
+    <div class="mventory-rule-remove">&#x274C;</div>
+
+    <div class="mventory-rule-attrs">
+      <div class="mventory-inner">
+
+        <div class="mventory-rule-attr clear">
+          <div class="mventory-rule-attr-name"></div>
+          <div class="mventory-rule-attr-value"></div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="mventory-rule-categories">
+      <div class="mventory-inner">
+        <div class="mventory-rule-category"></div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<div class="box clear">
+  <div id="mventory-rule-new" class="mventory-rule-attrs">
+    <div class="mventory-inner clear">
+      <div class="mventory-rule-new-attr mventory-state-not-completed">
+
+        <div class="mventory-rule-new-attr-buttons">
+          <a class="mventory-rule-remove">&#x274C;</a>
+        </div>
+
+        <div>
+          <select class="mventory-rule-new-attr-name">
+            <?php foreach ($this->_attrs as $id => $attr): ?>
+            <option <?php if ($attr['used']) echo 'class="mventory-state-used-attr"'; ?> value="<?php echo $id; ?>"><?php echo $attr['label']; ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+
+        <div class="mventory-rule-new-arrow">&#8681;</div>
+
+        <div>
+          <select class="mventory-rule-new-attr-value" multiple="multiple"></select>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="mventory-rule-categories">
+    <div class="mventory-inner">
+      <div class="mventory-rule-category">
+        <a id="mventory-categories" href="#">Select category</a>
+        <div id="mventory-categories-wrapper">
+          <?php echo $this->getChildHtml('categories'); ?>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="mventory-rule-new-buttons">
+    <?php echo $this->getChildHtml('button_rule_reset'); ?>
+    <?php echo $this->getChildHtml('button_rule_save'); ?>
+  </div>
+</div>
+
+<script type="text/javascript">
+//<![CDATA[
+
+MVENTORY_RULE_DEFAULT_ID = '<?php echo MVentory_API_Model_Matching::DEFAULT_RULE_ID; ?>';
+MVENTORY_RULE_DEFAULT_TITLE = '<?php echo $this->__('Default rule'); ?>';
+
+mventory_attrs = <?php echo $this->_getAttributesJson(); ?>;
+mventory_urls = <?php echo $this->_getUrlsJson(); ?>;
+
+//]]>
+</script>
