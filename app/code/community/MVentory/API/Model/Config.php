@@ -24,6 +24,9 @@
  */
 class MVentory_API_Model_Config
 {
+  //Version of API. Returned in every API call under '_apiversion_' key
+  const API_VERSION = '20140815';
+
   //Config paths
   const _FETCH_LIMIT = 'mventory/api/products-number-to-fetch';
   const _TAX_CLASS = 'mventory/api/tax_class';
@@ -41,4 +44,14 @@ class MVentory_API_Model_Config
   const _QR_CSS = 'mventory/qr/css';
   const _QR_URL = 'mventory/qr/base_url';
   const _QR_COPIES = 'mventory/qr/copies';
+  const _DBX_TKN = 'mventory/image_clips/dropbox_token';
+  const _DBX_PATH = 'mventory/image_clips/dropbox_path';
+
+  //Attribute metadata values
+  const MT_INPUT_KBD = 0;
+  const MT_INPUT_NUMKBD = 1;
+  const MT_INPUT_SCANNER = 2;
+  const MT_INPUT_GESTURES = 3;
+  const MT_INPUT_INTERNETSEARCH = 4;
+  const MT_INPUT_ANOTHERPROD = 5;
 }

@@ -100,10 +100,25 @@ class MVentory_API_Helper_Data extends Mage_Core_Helper_Abstract {
   }
 
   /**
+   * Prepare API response:
+   *   - Add API version to the beginning of the response data
+   *
+   * @param array $data API response data
+   * @return array Prepared response data
+   */
+  public function prepareApiResponse ($data) {
+    $data = array_reverse($data, true);
+
+    $data['_apiversion_'] = MVentory_API_Model_Config::API_VERSION;
+
+    return array_reverse($data, true);
+  }
+
+  /**
    * !!!TODO: remove method; fix dependent code
    */
   public function getWebsitesForProduct () {
-    return $this->getCurrentWebsite();
+    return array($this->getCurrentWebsite()->getId());
   }
 
   /**
@@ -163,28 +178,6 @@ class MVentory_API_Helper_Data extends Mage_Core_Helper_Abstract {
     $this->_baseMediaUrl = $this->getConfig($path, $website);
 
     return $this->_baseMediaUrl;
-  }
-
-  /**
-   * Return configurable attribute by attribute set ID
-   *
-   * It searches configurable attribute which is global and has underscore
-   * at the end and select as frontend
-   *
-   * NOTE: the function returns first attribute because we support
-   *       only one configurable attribute in product
-   */
-  public function getConfigurableAttribute ($setId) {
-    return Mage::getResourceModel('catalog/product_attribute_collection')
-             ->setAttributeSetFilter($setId)
-             ->addFieldToFilter('attribute_code', array('like' => '%\_'))
-             ->addFieldToFilter('is_configurable', '1')
-             ->addFieldToFilter('frontend_input', 'select')
-             ->addFieldToFilter(
-                 'is_global',
-                 Mage_Catalog_Model_Resource_Eav_Attribute::SCOPE_GLOBAL
-               )
-             ->getFirstItem();
   }
 
   public function getConfig ($path, $website = null) {

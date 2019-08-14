@@ -24,42 +24,17 @@
  */
 class MVentory_API_Model_Product_Api extends Mage_Catalog_Model_Product_Api {
 
+  const __INVALID_VAL = 'Value for "%s" is invalid';
+  const __INVALID_VAL_ERR = 'Value for "%s" is invalid: %s';
+
   const CONF_TYPE = Mage_Catalog_Model_Product_Type_Configurable::TYPE_CODE;
 
-  protected $_excludeFromProduct = array(
-    'type' => true,
-    'type_id' => true,
-    'old_id' => true,
-    'news_from_date' => true,
-    'news_to_date' => true,
-    'country_of_manufacture' => true,
-    'categories' => true,
-    'required_options' => true,
-    'has_options' => true,
-    'image_label' => true,
-    'small_image_label' => true,
-    'thumbnail_label' => true,
-    'group_price' => true,
-    'tier_price' => true,
-    'msrp_enabled' => true,
-    'minimal_price' => true,
-    'msrp_display_actual_price_type' => true,
-    'msrp' => true,
-    'enable_googlecheckout' => true,
-    'meta_title' => true,
-    'meta_keyword' => true,
-    'meta_description' => true,
-    'is_recurring' => true,
-    'recurring_profile' => true,
-    'custom_design' => true,
-    'custom_design_from' => true,
-    'custom_design_to' => true,
-    'custom_layout_update' => true,
-    'page_layout' => true,
-    'options_container' => true,
-    'gift_message_available' => true,
-    'url_key' => true,
-    'visibility' => true
+  protected $_allowUpdate = array(
+    //!!!TODO: remove it after the app will treat status as normal attribute
+    //         Add to whitelist in MVentory_API_Helper_Product_Attribute
+    'status' => true,
+
+    'stock_data' => true
   );
 
   public function fullInfo ($productId,
@@ -77,7 +52,7 @@ class MVentory_API_Model_Product_Api extends Mage_Catalog_Model_Product_Api {
       $identifierType = 'sku';
     }
 
-    $helper = Mage::helper('mventory/product');
+    $helper = Mage::helper('mventory/product_attribute');
 
     $productId = $helper->getProductId($productId, $identifierType);
 
@@ -95,12 +70,25 @@ class MVentory_API_Model_Product_Api extends Mage_Catalog_Model_Product_Api {
     //product is configurable one
     $productId = $_result['product_id'];
 
-    foreach ($_result as $key => $value) {
-      if (isset($this->_excludeFromProduct[$key]))
-        continue;
-
-      $result[$key] = $value;
-    }
+    $result = array_intersect_key(
+      $_result,
+      array_merge(
+        array(
+          'product_id' => true,
+          'set' => true,
+          'websites' => true,
+          'url_path' => true,
+          'status' => true,
+          'category_ids' => true,
+          'mv_created_date' => true,
+          'mv_created_userid' => true,
+          'mv_stock_journal' => true,
+          'created_at' => true,
+          'updated_at' => true
+        ),
+        $helper->getEditables($_result['set'])
+      )
+    );
 
     $stockItem = Mage::getModel('mventory/stock_item_api');
 
@@ -108,10 +96,6 @@ class MVentory_API_Model_Product_Api extends Mage_Catalog_Model_Product_Api {
 
     if (isset($_result[0]))
       $result = array_merge($result, $_result[0]);
-
-    $result['set_attributes']
-      = Mage::getModel('mventory/product_attribute_api')
-          ->fullInfoList($result['set']);
 
     $productAttributeMedia
       = Mage::getModel('catalog/product_attribute_media_api');
@@ -133,7 +117,10 @@ class MVentory_API_Model_Product_Api extends Mage_Catalog_Model_Product_Api {
      $helper = Mage::helper('mventory/product_configurable');
 
     if ($siblingIds = $helper->getSiblingsIds($productId)) {
-      foreach ($result['set_attributes'] as $attr)
+      $attrs = Mage::getModel('mventory/product_attribute_api')
+        ->fullInfoList($result['set']);
+
+      foreach ($attrs as $attr)
         if ($attr['is_configurable'])
           break;
 
@@ -163,11 +150,12 @@ class MVentory_API_Model_Product_Api extends Mage_Catalog_Model_Product_Api {
       array('product' => $product, 'website' => $website)
     );
 
-    return $product->getData();
+    return $helper->prepareApiResponse($product->getData());
   }
 
   public function limitedList ($name = null, $categoryId = null, $page = 1) {
-    $storeId = Mage::helper('mventory')->getCurrentStoreId();
+    $helper = Mage::helper('mventory');
+    $storeId = $helper->getCurrentStoreId();
 
     $limit = (int) Mage::getStoreConfig(
       MVentory_API_Model_Config::_FETCH_LIMIT,
@@ -230,25 +218,39 @@ class MVentory_API_Model_Product_Api extends Mage_Catalog_Model_Product_Api {
     $result['current_page'] = $collection->getCurPage();
     $result['last_page'] = (int) $collection->getLastPageNumber();
 
-    return $result;
+    return $helper->prepareApiResponse($result);
   }
 
   public function createAndReturnInfo ($type, $set, $sku, $data,
                                        $storeId = null) {
 
-    $helper = Mage::helper('mventory/product');
+    $helper = Mage::helper('mventory/product_configurable');
 
-    if (!$id = $helper->getProductId($sku, 'sku')) {
+    $hasProduct = ($id = $helper->getProductId($sku, 'sku'))
+                  && Mage::getModel('catalog/product')
+                       ->load($id)
+                       ->getId();
+
+    if (!$hasProduct) {
+      $sid = isset($data['_api_link_with_product'])
+               ? $data['_api_link_with_product']
+                 : false;
+
+      $data = $this->_filterData($data, $set);
+
+      //Set status to Enabled if it's not set, because Magento doesn't show
+      //newly created product in the admin interface if it's omitted
+      if (!isset($data['status']))
+        $data['status'] = 1;
+
       $data['mv_created_userid'] = $helper->getApiUser()->getId();
+      $data['mv_created_date'] = time();
       $data['website_ids'] = $helper->getWebsitesForProduct();
 
       $website = $helper->getCurrentWebsite();
 
       //Set visibility to website's default value
-      $data['visibility'] = (int) $helper->getConfig(
-        MVentory_API_Model_Config::_API_VISIBILITY,
-        $website
-      );
+      $data['visibility'] = $helper->getDefaultVisibility($website);
 
       $data['tax_class_id'] = (int) $helper->getConfig(
         MVentory_API_Model_Config::_TAX_CLASS,
@@ -263,6 +265,29 @@ class MVentory_API_Model_Product_Api extends Mage_Catalog_Model_Product_Api {
         $data,
         Mage_Core_Model_App::ADMIN_STORE_ID
       );
+
+      //Use admin store to save values of attributes in the default scope
+      $product = $this->_getProduct(
+        $id,
+        Mage_Core_Model_App::ADMIN_STORE_ID,
+        'id'
+      );
+
+      //!!!TODO: consider to move it before creating product
+      $saveProduct = $this->_matchCategory($product);
+
+      $saveProduct |= $sid
+                      && ($sid = $helper->getProductId($sid))
+                      && $helper->link($product, $sid);
+
+      if ($saveProduct)
+        $product->save();
+    } else if (isset($data['_api_update_if_exists'])
+              && $data['_api_update_if_exists']) {
+
+      $data['set'] = $set;
+
+      $this->update($id, $data, null, 'id');
     }
 
     return $this->fullInfo($id, 'id');
@@ -302,15 +327,14 @@ class MVentory_API_Model_Product_Api extends Mage_Catalog_Model_Product_Api {
       unset($stock);
     }
 
+    $data = $this->_filterData($data, $old->getAttributeSetId());
+
     if (!isset($data['sku']))
       $data['sku'] = $newSku;
 
     //Set visibility to "Catalog, Search". By default all products are visible.
     //They will be hidden if configurable one is created.
     $data['visibility'] = 4;
-
-    //Reset stock journal for the duplicate
-    $data['mv_stock_journal'] = '';
 
     $new = $old
             ->setData('mventory_update_duplicate', $data)
@@ -367,7 +391,8 @@ class MVentory_API_Model_Product_Api extends Mage_Catalog_Model_Product_Api {
    * @return array
    */
   public function statistics () {
-    $storeId    = Mage::helper('mventory')->getCurrentStoreId();
+    $helper = Mage::helper('mventory');
+    $storeId = $helper->getCurrentStoreId();
     $store      = Mage::app()->getStore($storeId);
 
     $date       = new Zend_Date();
@@ -510,7 +535,7 @@ class MVentory_API_Model_Product_Api extends Mage_Catalog_Model_Product_Api {
                      ->getData('loaded');
     // End of Products info
 
-    return array('day_sales' => (double)$daySales,
+    return $helper->prepareApiResponse(array('day_sales' => (double)$daySales,
                  'week_sales' => (double)$weekSales,
                  'month_sales' => (double)$monthSales,
                  'total_sales' => (double)$totalSales,
@@ -518,15 +543,20 @@ class MVentory_API_Model_Product_Api extends Mage_Catalog_Model_Product_Api {
                  'total_stock_value' => (double)$totalStockValue,
                  'day_loaded' => (double)$dayLoaded,
                  'week_loaded' => (double)$weekLoaded,
-                 'month_loaded' => (double)$monthLoaded);
+                 'month_loaded' => (double)$monthLoaded));
   }
 
   /**
    * Update product data
    *
+   * Method is redefined to:
+   *   - Update product's attribute set
+   *   - Process additional SKUs
+   *
    * @param int|string $productId
    * @param array $productData
    * @param string|int $store
+   * @param string $identifierType Type of $productId parameter
    * @return boolean
    */
   public function update ($productId,
@@ -534,12 +564,26 @@ class MVentory_API_Model_Product_Api extends Mage_Catalog_Model_Product_Api {
                           $store = null,
                           $identifierType = null) {
 
-    $helper = Mage::helper('mventory/product');
+    //Use admin store ID to save values of attributes in the default scope
+    $product = $this->_getProduct(
+      $productId,
+      Mage_Core_Model_App::ADMIN_STORE_ID,
+      $identifierType
+    );
 
-    $productId = $helper->getProductId($productId, $identifierType);
+    //!!!TODO: do we want to update attr set in linked prods?
+    //Update attribute set in the product and set flag to remove old values
+    //from the DB if it's set in incoming data and is different
+    //from current one.
+    if (isset($productData['set'])
+        && ($newSet = (int) $productData['set'])
+        && ($oldSet = (int) $product->getAttributeSetId())
+        && ($removeOldValues = $newSet != $oldSet)) {
 
-    if (!$productId)
-      $this->_fault('product_not_exists');
+      $this->_checkProductAttributeSet($newSet);
+
+      $product->setAttributeSetId($newSet);
+    }
 
     $skus = isset($productData['additional_sku'])
               ? (array) $productData['additional_sku']
@@ -551,16 +595,57 @@ class MVentory_API_Model_Product_Api extends Mage_Catalog_Model_Product_Api {
     if ($skus)
       unset($productData['stock_data']);
 
-    //Use admin store ID to save values of attributes in the default scope
-    $result = parent::update(
-      $productId,
+    $sid = isset($productData['_api_link_with_product'])
+             ? $productData['_api_link_with_product']
+               : false;
+
+    $productData = $this->_filterData(
       $productData,
-      Mage_Core_Model_App::ADMIN_STORE_ID,
-      'id'
+      $product->getAttributeSetId()
     );
 
-    if (!$result)
-      return $result;
+    $this->_prepareDataForSave($product, $productData);
+
+    if (isset($removeOldValues) && $removeOldValues)
+      $this->_removeOldValues($product, $oldSet, $newSet);
+
+    $this->_matchCategory($product);
+
+    if ($sid) {
+      $helper = Mage::helper('mventory/product_configurable');
+
+      if ($sid = $helper->getProductId($sid)) try {
+        $helper->link($product, $sid);
+      } catch (Exception $e) {
+        $this->_fault('linking_problems', $e->getMessage());
+      }
+    } else {
+      $helper = Mage::helper('mventory/product_configurable');
+
+      if ($cID = $helper->getIdByChild($product))
+        $helper->update($product, $cID);
+    }
+
+    try {
+      if (is_array($errors = $product->validate())) {
+        $_errors = array();
+        $cHelper = Mage::helper('catalog');
+
+        foreach ($errors as $code => $error)
+          $_errors[]
+            = $error === true
+                ? $cHelper->__(self::__INVALID_VAL, $code)
+                  : $cHelper->__(self::__INVALID_VAL_ERR, $code, $error);
+
+        $this->_fault('data_invalid', implode("\n", $_errors));
+      }
+
+      $product->save();
+    } catch (Mage_Core_Exception $e) {
+      $this->_fault('data_invalid', $e->getMessage());
+    }
+
+    $productId = $product->getId();
 
     if ($removeSkus)
       Mage::getResourceModel('mventory/sku')->removeByProductId($productId);
@@ -569,7 +654,7 @@ class MVentory_API_Model_Product_Api extends Mage_Catalog_Model_Product_Api {
       Mage::getResourceModel('mventory/sku')->add(
         $skus,
         $productId,
-        $helper->getCurrentWebsite()
+        Mage::helper('mventory/product')->getCurrentWebsite()
       );
 
       $stock = Mage::getModel('cataloginventory/stock_item')
@@ -581,7 +666,29 @@ class MVentory_API_Model_Product_Api extends Mage_Catalog_Model_Product_Api {
           ->save();
     }
 
-    return $result;
+    return true;
+  }
+
+  /**
+   * Delete product
+   *
+   * @param int|string $productId
+   * @return boolean
+   */
+  public function delete ($productId, $identifierType = null) {
+    $product = $this->_getProduct($productId, null, $identifierType);
+    $helper = Mage::helper('mventory/product_configurable');
+
+    try {
+      if ($cID = $helper->getIdByChild($product))
+        $helper->remove($product, $cID);
+
+      $product->delete();
+    } catch (Mage_Core_Exception $e) {
+      $this->_fault('not_deleted', $e->getMessage());
+    }
+
+    return true;
   }
 
   /**
@@ -619,5 +726,56 @@ class MVentory_API_Model_Product_Api extends Mage_Catalog_Model_Product_Api {
       $this->_fault('product_not_exists');
 
     return $product;
+  }
+
+  /**
+   * Remove data of attributes from the old attribute set
+   * which are not presence in the new set
+   *
+   * @param Mage_Catalog_Model_Product $product
+   * @param int $oldSet Old attribute sed ID
+   * @param int $newSet New attribute sed ID
+   */
+  protected function _removeOldValues ($product, $oldSet, $newSet) {
+    $type = $product->getTypeId();
+
+    if (!$oldAttrs = $this->getAdditionalAttributes($type, $oldSet))
+      return;
+
+    $newAttrs = $this->getAdditionalAttributes($type, $newSet);
+
+    foreach ($newAttrs as $attr)
+      $_newAttrs[$attr['code']] = true;
+
+    foreach ($oldAttrs as $oldAttr) {
+      $code = $oldAttr['code'];
+
+      if (!isset($_newAttrs[$code]))
+        $product->setData($code, false);
+    }
+  }
+
+  protected function _matchCategory ($product) {
+    $result = Mage::getModel('mventory/matching')->matchCategory($product);
+
+    if (!$result)
+      return;
+
+    $product->setCategoryIds($result);
+
+    return true;
+  }
+
+  protected function _filterData ($data, $setId) {
+    if (!$data)
+      return $data;
+
+    return array_intersect_key(
+      $data,
+      array_merge(
+        Mage::helper('mventory/product_attribute')->getWritables($setId),
+        $this->_allowUpdate
+      )
+    );
   }
 }

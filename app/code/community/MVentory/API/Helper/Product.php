@@ -104,6 +104,10 @@ class MVentory_API_Helper_Product extends MVentory_API_Helper_Data {
   /**
    * Try to get product's ID
    *
+   * NOTE: this method doesn't recognise only numerical SKUs even
+   *       if $identifierType is set to 'sku'. It will be returned as ID
+   *       then such SKU, barcode and additional SKUs don't exist
+   *
    * @param  int|string $productId (SKU, ID or Barcode)
    * @param  string $identifierType
    *
@@ -146,21 +150,65 @@ class MVentory_API_Helper_Product extends MVentory_API_Helper_Data {
   }
 
   /**
-   * Search product ID by value of product_barcode_ attribute
-   *
-   * !!!TODO: product_barcode_ attribute should be converted to global
+   * Search product ID by value of product_barcode_ or sku attributes
    *
    * @param  string $barcode Barcode
    *
    * @return int|null
    */
   public function getProductIdByBarcode ($barcode) {
+    if (Mage::helper('mventory/barcode')->isEAN13($barcode))
+      return $this->getIdByEAN13Barcode($barcode);
+
     $ids = Mage::getResourceModel('catalog/product_collection')
-             ->addAttributeToFilter('product_barcode_', $barcode)
-             ->addStoreFilter($this->getCurrentStoreId())
+             ->addAttributeToFilter(array(
+                 array('attribute' => 'product_barcode_', 'eq' => $barcode),
+                 array('attribute' => 'sku', 'eq' => $barcode)
+               ))
              ->getAllIds(1);
 
     return $ids ? $ids[0] : null;
+  }
+
+  /**
+   * Search product ID by value (in EAN13 or UPC-A format) of product_barcode_
+   * or sku attributes
+   *
+   * @param  string $barcode Barcode in EAN13 or UPC-A format
+   * @return int|null
+   */
+  public function getIdByEAN13Barcode ($barcode) {
+
+    //Get ID by exact match
+    $ids = Mage::getResourceModel('catalog/product_collection')
+      ->addAttributeToFilter(array(
+          array('attribute' => 'product_barcode_', 'eq' => $barcode),
+          array('attribute' => 'sku', 'eq' => $barcode)
+        ))
+      ->getAllIds();
+
+    //Return ID if we found only 1 match
+    if (count($ids) == 1)
+      return $ids[0];
+
+    //Stop searching if barcode w/o supplemental part or we found several
+    //IDs by exact match
+    if (strpos($barcode, '-') == false || count($ids))
+      return null;
+
+    //Search for barcodes beginning with the main part of the supplied barcode
+    //and return product ID if we found exactly one match
+
+    list($barcode) = explode('-', $barcode);
+
+    $ids = Mage::getResourceModel('catalog/product_collection')
+      ->addAttributeToFilter(array(
+          array('attribute' => 'product_barcode_', 'like' => $barcode . '%'),
+          array('attribute' => 'sku', 'like' => $barcode . '%')
+        ))
+      ->getAllIds();
+
+    return count($ids) == 1 ? $ids[0] : null;
   }
 
   public function updateFromSimilar ($product, $similar) {
@@ -385,5 +433,25 @@ class MVentory_API_Helper_Product extends MVentory_API_Helper_Data {
     return isset($attributes[$attributeCode])
              ? $attributes[$attributeCode]->getFrontend()->getValue($product)
                : null;
+  }
+
+  /**
+   * Return default product visibility for product processed via API
+   *
+   * @see Mage_Catalog_Model_Product_Visibility
+   *   For list of possible values
+   *
+   * @param Mage_Core_Model_Website $website
+   *   Website scope used to retrieve value of Default product visibility
+   *   setting
+   *
+   * @return int
+   *   Value of default product visibility
+   */
+  public function getDefaultVisibility ($website) {
+    return (int) $this->getConfig(
+      MVentory_API_Model_Config::_API_VISIBILITY,
+      $website
+    );
   }
 }
