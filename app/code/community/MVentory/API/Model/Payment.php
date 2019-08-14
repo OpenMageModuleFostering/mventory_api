@@ -14,27 +14,20 @@
  * See the full license at http://creativecommons.org/licenses/by-nc-nd/4.0/
  *
  * @package MVentory/API
- * @copyright Copyright (c) 2014 mVentory Ltd. (http://mventory.com)
+ * @copyright Copyright (c) 2014-2015 mVentory Ltd. (http://mventory.com)
  * @license http://creativecommons.org/licenses/by-nc-nd/4.0/
  */
 
 /**
- * Collection for the volume based shipping carrier model
+ * Payment model
  *
  * @package MVentory/API
  * @author Anatoly A. Kazantsev <anatoly@mventory.com>
  */
-class MVentory_API_Model_Resource_Carrier_Volumerate_Collection
-  extends Mage_Shipping_Model_Resource_Carrier_Tablerate_Collection {
+class MVentory_API_Model_Payment extends Mage_Payment_Model_Method_Abstract
+{
+  protected $_code = 'mventory';
 
-  /**
-   * Define resource model and item
-   */
-  protected function _construct () {
-    $this->_init('mventory/carrier_volumerate');
-
-    $this->_shipTable = $this->getMainTable();
-    $this->_countryTable = $this->getTable('directory/country');
-    $this->_regionTable = $this->getTable('directory/country_region');
-  }
+  protected $_canAuthorize = true;
+  protected $_canUseCheckout = false;
 }

@@ -4,12 +4,14 @@
  * NOTICE OF LICENSE
  *
  * This source file is subject to the Creative Commons License BY-NC-ND.
- * NonCommercial — You may not use the material for commercial purposes.
- * NoDerivatives — If you remix, transform, or build upon the material,
- * you may not distribute the modified material.
- * See the full license at http://creativecommons.org/licenses/by-nc-nd/4.0/
+ * By Attribution (BY) - You can share this file unchanged, including
+ * this copyright statement.
+ * Non-Commercial (NC) - You can use this file for non-commercial activities.
+ * A commercial license can be purchased separately from mventory.com.
+ * No Derivatives (ND) - You can make changes to this file for your own use,
+ * but you cannot share or redistribute the changes.  
  *
- * See http://mventory.com/legal/licensing/ for other licensing options.
+ * See the full license at http://creativecommons.org/licenses/by-nc-nd/4.0/
  *
  * @package MVentory/API
  * @copyright Copyright (c) 2014 mVentory Ltd. (http://mventory.com)
@@ -51,6 +53,8 @@ class MVentory_API_Model_Product_Api extends Mage_Catalog_Model_Product_Api {
       $productId = $identifierType;
       $identifierType = 'sku';
     }
+    else if ($identifierType)
+      $identifierType = strtolower(trim($identifierType));
 
     $helper = Mage::helper('mventory/product_attribute');
 
@@ -64,11 +68,37 @@ class MVentory_API_Model_Product_Api extends Mage_Catalog_Model_Product_Api {
                  ->getDefaultStore()
                  ->getId();
 
-    $_result = $this->info($productId, $storeId, null, 'id');
+    $product = $this->_getProduct($productId, $storeId, $identifierType);
 
     //Product's ID can be changed by '_getProduct()' function if original
     //product is configurable one
-    $productId = $_result['product_id'];
+    $productId = $product->getId();
+
+    $_result = array(
+      'product_id' => $productId,
+      'sku' => $product->getSku(),
+      'set' => $product->getAttributeSetId(),
+      'websites' => $product->getWebsiteIds(),
+      'category_ids' => $product->getCategoryIds()
+    );
+
+    $editableAttributes = $product
+      ->getTypeInstance(true)
+      ->getEditableAttributes($product);
+
+    foreach ($editableAttributes as $attribute) {
+      $code = $attribute->getAttributeCode();
+
+      if (isset($_result[$code]))
+        continue;
+
+      if (!$this->_isAllowedAttribute($attribute))
+        continue;
+
+      $_result[$code] = $product->getData($code);
+    }
+
+    unset($editableAttributes, $attribute, $code);
 
     $result = array_intersect_key(
       $_result,
@@ -98,23 +128,30 @@ class MVentory_API_Model_Product_Api extends Mage_Catalog_Model_Product_Api {
       $result = array_merge($result, $_result[0]);
 
     $productAttributeMedia
-      = Mage::getModel('catalog/product_attribute_media_api');
+      = Mage::getModel('mventory/product_attribute_media_api');
 
     $baseUrlPath = Mage_Core_Model_Store::XML_PATH_UNSECURE_BASE_URL;
 
-    $mediaPath = Mage::getStoreConfig($baseUrlPath, $storeId)
-                 . 'media/'
-                 . Mage::getSingleton('catalog/product_media_config')
-                     ->getBaseMediaUrlAddition();
+    $mediaConfig = Mage::getSingleton('catalog/product_media_config');
+
+    $baseMediaPath = $mediaConfig->getBaseMediaPath();
+    $baseMediaUrl = Mage::getStoreConfig($baseUrlPath, $storeId)
+                    . 'media/'
+                    . $mediaConfig->getBaseMediaUrlAddition();
 
     $images = $productAttributeMedia->items($productId, $storeId, 'id');
 
-    foreach ($images as &$image)
-      $image['url'] = $mediaPath . $image['file'];
+    foreach ($images as &$image) {
+      $_image = new Varien_Image($baseMediaPath . $image['file']);
+
+      $image['url'] = $baseMediaUrl . $image['file'];
+      $image['width'] = (string) $_image->getOriginalWidth();
+      $image['height'] = (string) $_image->getOriginalHeight();
+    }
 
     $result['images'] = $images;
 
-     $helper = Mage::helper('mventory/product_configurable');
+    $helper = Mage::helper('mventory/product_configurable');
 
     if ($siblingIds = $helper->getSiblingsIds($productId)) {
       $attrs = Mage::getModel('mventory/product_attribute_api')
@@ -310,7 +347,7 @@ class MVentory_API_Model_Product_Api extends Mage_Catalog_Model_Product_Api {
     //Load images from the original product before duplicating
     //because the original one can be removed during duplication
     //if duplicated product is similar to it.
-    $images = Mage::getModel('catalog/product_attribute_media_api');
+    $images = Mage::getModel('mventory/product_attribute_media_api');
     $oldImages = $images->items($oldId);
 
     $subtractQty = (int) $subtractQty;
@@ -359,14 +396,14 @@ class MVentory_API_Model_Product_Api extends Mage_Catalog_Model_Product_Api {
       $file = $new[$n]['file'];
 
       if ($mode == 'none') {
-        $images->remove($newId, $file);
+        $images->remove_($newId, $file);
 
         continue;
       }
 
       if (!isset($old[$n]['types'])) {
         if ($mode == 'main')
-          $images->remove($newId, $file);
+          $images->remove_($newId, $file);
 
         continue;
       }
@@ -374,7 +411,7 @@ class MVentory_API_Model_Product_Api extends Mage_Catalog_Model_Product_Api {
       $types = $old[$n]['types'];
 
       if ($mode == 'main' && !in_array('image', $types)) {
-        $images->remove($newId, $file);
+        $images->remove_($newId, $file);
 
         continue;
       }

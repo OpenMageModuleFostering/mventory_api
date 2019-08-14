@@ -4,12 +4,14 @@
  * NOTICE OF LICENSE
  *
  * This source file is subject to the Creative Commons License BY-NC-ND.
- * NonCommercial — You may not use the material for commercial purposes.
- * NoDerivatives — If you remix, transform, or build upon the material,
- * you may not distribute the modified material.
- * See the full license at http://creativecommons.org/licenses/by-nc-nd/4.0/
+ * By Attribution (BY) - You can share this file unchanged, including
+ * this copyright statement.
+ * Non-Commercial (NC) - You can use this file for non-commercial activities.
+ * A commercial license can be purchased separately from mventory.com.
+ * No Derivatives (ND) - You can make changes to this file for your own use,
+ * but you cannot share or redistribute the changes.  
  *
- * See http://mventory.com/legal/licensing/ for other licensing options.
+ * See the full license at http://creativecommons.org/licenses/by-nc-nd/4.0/
  *
  * @package MVentory/API
  * @copyright Copyright (c) 2014-2015 mVentory Ltd. (http://mventory.com)
@@ -207,7 +209,7 @@ class MVentory_API_Model_Product_Attribute_Media_Api
       ->getBackend();
 
     if (!$backend->getImage($product, $file))
-      $this->_fault('not_exists');
+      $this->_fault('image_not_exists');
 
     if (isset($data['file']['mime']) && isset($data['file']['content'])) {
       if (!isset($this->_mimeTypes[$data['file']['mime']]))
@@ -280,7 +282,7 @@ class MVentory_API_Model_Product_Attribute_Media_Api
     try {
       $product->save();
     } catch (Mage_Core_Exception $e) {
-      $this->_fault('not_updated', $e->getMessage());
+      $this->_fault('image_not_updated', $e->getMessage());
     }
 
     return true;
@@ -289,7 +291,20 @@ class MVentory_API_Model_Product_Attribute_Media_Api
   public function remove_ ($productId, $file, $identifierType = null) {
     $image = $this->info($productId, $file, null, $identifierType);
 
-    $this->remove($productId, $file, $identifierType);
+    $product = $this->_initProduct($productId, null, $identifierType);
+    $gallery = $this->_getGalleryAttribute($product);
+
+    if (!$gallery->getBackend()->getImage($product, $file))
+      $this->_fault('image_not_exists');
+
+    $gallery->getBackend()->removeImage($product, $file);
+
+    try {
+      $product->save();
+    } catch (Mage_Core_Exception $e) {
+      $this->_fault('not_removed', $e->getMessage());
+    }
+
     $images = $this->items($productId, null, $identifierType);
 
     $helper = Mage::helper('mventory/product_configurable');
@@ -361,6 +376,42 @@ class MVentory_API_Model_Product_Attribute_Media_Api
     }
 
     return $productApi->fullInfo($productId, $identifierType);
+  }
+
+  /**
+   * Retrieve image data
+   *
+   * This method is redefined to replace not_exists fault
+   * with image_not_exists to avoid conflicts with similar faults from other
+   * modules
+   *
+   * @param int|string $productId
+   *   ID or SKU of a product
+   *
+   * @param string $file
+   *   Name of image file
+   *
+   * @param string|int $store
+   *   ID or Code of a store
+   *
+   * @param string $identifierType
+   *   Type of $productId parameter
+   *
+   * @return array
+   *   Image data
+   */
+  public function info ($productId,
+                        $file,
+                        $store = null,
+                        $identifierType = null) {
+
+    $product = $this->_initProduct($productId, $store, $identifierType);
+    $gallery = $this->_getGalleryAttribute($product);
+
+    if (!$image = $gallery->getBackend()->getImage($product, $file))
+      $this->_fault('image_not_exists');
+
+    return $this->_imageToArray($image, $product);
   }
 
   /**
