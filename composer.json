@@ -1,16 +1,19 @@
 {
-    "name": "OpenMageModuleFostering/MVentory_API",
+    "name": "OpenMageModuleFostering\/MVentory_API",
     "type": "magento-module",
     "license": "CC-BY-NC-ND-4.0",
     "homepage": "",
     "description": "The easiest way to sell online: PoS, Inventory and Website control in one elegant Android application.",
     "authors": [
-    {
-        "name": "Anatoly A. Kazantsev",
-        "email": "anatoly@mventory.com"
-    }
-],
+        {
+            "name": "Anatoly A. Kazantsev",
+            "email": "anatoly@mventory.com"
+        }
+    ],
     "suggest": {
-        "magento-hackathon/magento-composer-installer": "*"
-    }
+        "magento-hackathon\/magento-composer-installer": "*"
+    },
+    "keywords": [
+        "openmage-module"
+    ]
 }
